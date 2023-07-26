@@ -4,7 +4,7 @@
         2
     ],
     "description": "Downmix all audio streams to Stereo AAC",
-    "icon": "https://raw.githubusercontent.com/Unmanic/plugin.encoder_audio_aac/master/icon.png",
+    "icon": "https://raw.githubusercontent.com/k29t59dh/unmanic-plugins/master/source/aac_stereo_downmix/icon.png",
     "id": "aac_stereo_downmix",
     "name": "AAC Stereo Downmix",
     "platform": [
