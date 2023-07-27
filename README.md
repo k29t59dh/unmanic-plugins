@@ -1,4 +1,4 @@
-# Unmanic Plugins by <!-- your name here -->
+# Unmanic Plugins by k29t59dh
 
 ## Instructions
 
