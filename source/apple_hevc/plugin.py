@@ -156,7 +156,7 @@ def on_worker_process(data):
         data['exec_command'] = ['ffmpeg']
         data['exec_command'] += ffmpeg_args
 
-        logger.info("command: '{}'".format(data['exec_command']))
+        #logger.debug("command: '{}'".format(data['exec_command']))
         
         # Set the parser
         parser = Parser(logger)

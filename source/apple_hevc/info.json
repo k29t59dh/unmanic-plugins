@@ -3,7 +3,7 @@
     "compatibility": [
         2
     ],
-    "description": "Convert HEVC hev1 to Apple-compatible hvc1",
+    "description": "Convert hev1 HEVC to Apple-compatible hvc1 HEVC",
     "icon": "https://raw.githubusercontent.com/k29t59dh/unmanic-plugins/d9d75c70b2b9fec167ab51a18340dcbf3168a46b/source/apple_hevc/icon.png",
     "id": "apple_hevc",
     "name": "Apple HEVC",
