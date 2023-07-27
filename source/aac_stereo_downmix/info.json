@@ -1,19 +1,16 @@
 {
-    "author": "Josh.5",
+    "author": "k29t59dh",
     "compatibility": [
         2
     ],
     "description": "Downmix all audio streams to Stereo AAC",
     "icon": "https://raw.githubusercontent.com/k29t59dh/unmanic-plugins/master/source/aac_stereo_downmix/icon.png",
+    "icon_static": "/unmanic/panel/aac_stereo_downmix/static/icon.png",
     "id": "aac_stereo_downmix",
     "name": "AAC Stereo Downmix",
-    "platform": [
-        "all"
-    ],
     "priorities": {
-        "on_library_management_file_test": 99,
         "on_worker_process": 0
     },
-    "tags": "audio,encoder,ffmpeg,stereo,downmix,aac",
+    "tags": "audio, encoder, ffmpeg, stereo, downmix, aac",
     "version": "0.0.1"
 }

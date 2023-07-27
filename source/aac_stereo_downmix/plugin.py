@@ -1,31 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""
-    plugins.__init__.py
-
-    Written by:               Josh.5 <jsunnex@gmail.com>
-    Date:                     23 Aug 2021, (20:38 PM)
-
-    Copyright:
-        Copyright (C) 2021 Josh Sunnex
-
-        This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
-        Public License as published by the Free Software Foundation, version 3.
-
-        This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
-        implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
-        for more details.
-
-        You should have received a copy of the GNU General Public License along with this program.
-        If not, see <https://www.gnu.org/licenses/>.
-
-"""
-import logging
-import os
+import logging, os
 
 from unmanic.libs.unplugins.settings import PluginSettings
-
 from aac_stereo_downmix.lib.ffmpeg import StreamMapper, Probe, Parser
 
 # Configure plugin logger
@@ -42,7 +20,7 @@ class Settings(PluginSettings):
         super(Settings, self).__init__(*args, **kwargs)
         self.form_settings = {
             "custom_formula":              {
-                "label": "Write your own formula",
+                "label": "Custom formula",
             },
             "formula":        self.__set_formula_form_settings(),
         }
@@ -50,7 +28,6 @@ class Settings(PluginSettings):
     def __set_formula_form_settings(self):
         values = {
             "label":       "Formula",
-            "description": "Custom formula",
         }
         if not self.get_setting('custom_formula'):
             values["display"] = 'hidden'
