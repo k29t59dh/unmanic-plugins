@@ -134,8 +134,8 @@ class Settings(PluginSettings):
 
     def __set_delay_import(self):
         values = {
-            "label":       "Delay import until all files have been processed",
-            "description": "If files are delivered to 'Import' by mover this delays import until all files are processed",
+            "label":       "Delay import until all files are processed",
+            "description": "If files are delivered to the import directory by mover this delays import until all files are delivered",
             "sub_setting": True,
         }
         if self.get_setting('mode') != 'import_mode':
@@ -146,7 +146,7 @@ class Settings(PluginSettings):
         values = {
             "label":       "Intermediate Directory",
             "input_type":  "browse_directory",
-            "description": "Root directory from which files are processed for import",
+            "description": "Directory from which mover delivers files",
             "sub_setting": True,
         }
         if self.get_setting('mode') != 'import_mode':
@@ -157,7 +157,7 @@ class Settings(PluginSettings):
 
     def __set_sources_removed(self):
         values = {
-            "label":       "Is mover configured to remove source files?",
+            "label":       "Mover is configured to remove source files",
             "sub_setting": True,
         }
         if self.get_setting('mode') != 'import_mode':
@@ -291,7 +291,9 @@ def import_mode(api, source_path, dest_path, intermediate_root, import_root, sou
             # hide the file from sonarr to prevent early import
             newname = dest_path + '.tmp'
             logger.debug("Hiding file as '%s'", newname)
-            os.rename(dest_path, newname)
+            # in case another notifier hid it (same library might notify sonarr AND radarr)
+            if not os.path.exists(newname):
+                os.rename(dest_path, newname)
             return
         else:
             logger.info("All intermediate files have been processed")
@@ -367,7 +369,6 @@ def process_files(settings, source_file, destination_files, host_url, api_key):
         intermediate_root = import_root
     sources_removed = settings.get_setting('sources_removed')
     
-    # Get the basename of the file
     for dest_file in destination_files:
         if mode == 'update_mode':
             update_mode(api, dest_file, rename_files)
@@ -402,9 +403,21 @@ def on_postprocessor_task_results(data):
     else:
         settings = Settings()
 
+    message = pprint.pformat(data, indent=1)
+    logger.debug("data: \n%s", message)
+
     # Fetch destination and source files
     source_file = data.get('source_data', {}).get('abspath')
     destination_files = data.get('destination_files', [])
+
+    message = pprint.pformat(data.get('source_data', {}), indent=1)
+    logger.debug("source_data: \n%s", message)
+
+    message = pprint.pformat(data.get('destination_files', []), indent=1)
+    logger.debug("destination_files: \n%s", message)
+
+    # import_mode(api, source_file, dest_file, intermediate_root, import_root, sources_removed)
+    #return
 
     # Setup API
     host_url = settings.get_setting('host_url')

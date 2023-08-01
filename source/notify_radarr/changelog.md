@@ -1,8 +1,7 @@
 
 **<span style="color:#56adda">0.0.5</span>**
-- Added folder support (multi-file imports)
-- Added delayed processing for multi-file conversions
-- Improved queue matching
+- Add folder support to import subs
+- Queue match to remux (extension-agnostic)
 
 **<span style="color:#56adda">0.0.4</span>**
 - Add ability to trigger Radarr file renaming
