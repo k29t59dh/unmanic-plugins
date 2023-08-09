@@ -407,6 +407,7 @@ def process_files(settings, source_file, destination_files, host_url, api_key):
                 # Ignore this file
                 logger.info("Ignoring file as it is under configured minimum size file: '%s'", dest_file)
                 continue
+            logger.debug("Calling import source with source_file: '%s', dest_file: '%s'", source_file, dest_file)
             import_mode(api, source_file, dest_file, intermediate_root, import_root, sources_removed)
 
 
@@ -430,22 +431,19 @@ def on_postprocessor_task_results(data):
         settings = Settings(library_id=data.get('library_id'))
     else:
         settings = Settings()
-
-    message = pprint.pformat(data, indent=1)
-    logger.debug("data: \n%s", message)
+        
+    #message = pprint.pformat(data, indent=1)
+    #logger.debug("data: \n%s", message)
 
     # Fetch destination and source files
     source_file = data.get('source_data', {}).get('abspath')
     destination_files = data.get('destination_files', [])
 
-    message = pprint.pformat(data.get('source_data', {}), indent=1)
-    logger.debug("source_data: \n%s", message)
+    #message = pprint.pformat(data.get('source_data', {}), indent=1)
+    #logger.debug("source_data: \n%s", message)
 
-    message = pprint.pformat(data.get('destination_files', []), indent=1)
-    logger.debug("destination_files: \n%s", message)
-
-    # import_mode(api, source_file, dest_file, intermediate_root, import_root, sources_removed)
-    #return
+    #message = pprint.pformat(data.get('destination_files', []), indent=1)
+    #logger.debug("destination_files: \n%s", message)
 
     # Setup API
     host_url = settings.get_setting('host_url')
