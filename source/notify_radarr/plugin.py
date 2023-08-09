@@ -258,14 +258,20 @@ def update_mode(api, abspath, rename_files):
 
 
 def import_mode(api, source_path, dest_path, intermediate_root, import_root, sources_removed):
-    ##source_basename = os.path.basename(source_path)
-    # we want the first directory (or file) under the source/import root
+    # identify file/directory to be imported and
+    # reconstruct source and dest paths from _root parameters
+    
     source_basename = os.path.relpath(source_path, intermediate_root).split(os.sep)[0]
     dest_basename = os.path.relpath(dest_path, import_root).split(os.sep)[0]
 
     #abspath_string = dest_path.replace('\\', '')
     abspath_source = os.path.join(intermediate_root, source_basename)
     abspath_dest   = os.path.join(import_root, dest_basename)
+
+    # verify we've reconstructed paths correctly
+    if abspath_source not in source_path or abspath_dest not in dest_path:
+        logger.error("Import root ('%s') / intermediate_root ('%s') don't match source/desination files. Probable misconfiguration, exiting", import_root, intermediate_root)
+        return
 
     is_dir = os.path.isdir(abspath_source)
     logger.info("%s-type import - processing: '%s'", 'DIR' if is_dir else 'File', dest_path)
@@ -312,6 +318,8 @@ def import_mode(api, source_path, dest_path, intermediate_root, import_root, sou
     #logger.debug("Current queue \n%s", message)
     logger.debug("Searching queue for: '%s'", dest_basename)
     match = False
+    # assume extension matches unless told otherwise
+    extension_match = True
 
     for item in queue.get('records', []):
         # we should have an outputPath if everything goes well but sometimes it doesn't
@@ -325,12 +333,32 @@ def import_mode(api, source_path, dest_path, intermediate_root, import_root, sou
                 match = True
         else:
             # if dest is a file ignore extension, to handle remux
+            # radar won't import file if extensions don't match
             if os.path.splitext(dest_basename)[0] == os.path.splitext(item_output_basename)[0]:
                 match = True
+                if dest_basename != item_output_basename:
+                    extension_match = False
+
         if match:
             logger.debug("        * match *")
-            download_id = item.get('downloadId')
-            movie_title = item.get('title')
+
+            # unlike sonarr, radar will only import by download-id if extensions match...
+            if extension_match:
+                download_id = item.get('downloadId')
+                movie_title = item.get('title')
+            else:
+                # ..if they don't we do a regular file import
+                # But that means the download will be suck in the queue indefinitely,
+                # so we'll explicitly remove it.
+                # NOTE: this may be cause problems with seedting ratios - how to remove but retain radarr's management?
+                result = api.del_queue_bulk(data=data, remove_from_client=True, blacklist=False)
+                logger.debug("Delete result:\n%s", pprint.pformat(result, indent=1))
+
+                if isinstance(result, dict) or isinstance(result, list):
+                    message = pprint.pformat(result, indent=1)
+                    logger.debug("Removed item from queue - extension mismatch\n%s", message)
+                if (isinstance(result, dict)) and result.get('message'):
+                    logger.error("Failed to removie item from queue: '%s'", abspath_dest)
             break
 
     # Run import
