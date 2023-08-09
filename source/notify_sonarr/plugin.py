@@ -246,9 +246,9 @@ def update_mode(api, abspath, rename_files):
 
 
 def import_mode(api, source_path, dest_path, intermediate_root, import_root, sources_removed):
-    #source_basename = os.path.basename(source_path)
-    #abspath_string = dest_path.replace('\\', '')
-
+    # identify file/directory to be imported and
+    # reconstruct source and dest paths from _root parameters
+    
     # we want the first directory (or file) under the source/destination root
     source_basename = os.path.relpath(source_path, intermediate_root).split(os.sep)[0]
     dest_basename = os.path.relpath(dest_path, import_root).split(os.sep)[0]
@@ -256,6 +256,11 @@ def import_mode(api, source_path, dest_path, intermediate_root, import_root, sou
     #abspath_string = dest_path.replace('\\', '')
     abspath_source = os.path.join(intermediate_root, source_basename)
     abspath_dest   = os.path.join(import_root, dest_basename)
+
+    # verify we've reconstructed paths correctly
+    if abspath_source not in source_path or abspath_dest not in dest_path:
+        logger.error("Import root ('%s') / intermediate_root ('%s') don't match source/desination files. Probable misconfiguration, exiting", import_root, intermediate_root)
+        return
 
     is_dir = os.path.isdir(abspath_source)
     logger.info("%s-type import - processing: '%s'", 'DIR' if is_dir else 'File', dest_path)
@@ -375,6 +380,7 @@ def process_files(settings, source_file, destination_files, host_url, api_key):
                 # Ignore this file
                 logger.info("Ignoring file as it is under configured minimum size file: '%s'", dest_file)
                 continue
+            logger.debug("Calling import source with source_file: '%s', dest_file: '%s'", source_file, dest_file)
             import_mode(api, source_file, dest_file, intermediate_root, import_root, sources_removed)
 
 
