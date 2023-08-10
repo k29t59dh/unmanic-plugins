@@ -170,8 +170,8 @@ def check_file_size_under_max_file_size(path, minimum_file_size):
     return True
 
 
-def update_mode(api, abspath, rename_files):
-    basename = os.path.basename(abspath)
+def update_mode(api, dest_path, rename_files):
+    basename = os.path.basename(dest_path)
 
     # Fetch episode data
     episode_data = api.get_parsed_title(basename)
