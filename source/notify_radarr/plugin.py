@@ -315,7 +315,7 @@ def import_mode(api, source_path, dest_path, intermediate_root, import_root, sou
     queue = api.get_queue()
     message = pprint.pformat(queue, indent=1)
 
-    #logger.debug("Current queue \n%s", message)
+    logger.debug("Current queue \n%s", message)
     logger.debug("Searching queue for: '%s'", dest_basename)
     match = False
     # assume extension matches unless told otherwise
@@ -341,7 +341,6 @@ def import_mode(api, source_path, dest_path, intermediate_root, import_root, sou
 
         if match:
             logger.debug("        * match *")
-
             # unlike sonarr, radar will only import by download-id if extensions match...
             if extension_match:
                 download_id = item.get('downloadId')
@@ -350,15 +349,15 @@ def import_mode(api, source_path, dest_path, intermediate_root, import_root, sou
                 # ..if they don't we do a regular file import
                 # But that means the download will be suck in the queue indefinitely,
                 # so we'll explicitly remove it.
-                # NOTE: this may be cause problems with seedting ratios - how to remove but retain radarr's management?
+                # NOTE: this could cause problems with seeding ratios - is there some way to 'remove' but retain radarr's management?
+                data = { "ids": [ item.get('id') ] }
                 result = api.del_queue_bulk(data=data, remove_from_client=True, blacklist=False)
-                logger.debug("Delete result:\n%s", pprint.pformat(result, indent=1))
 
                 if isinstance(result, dict) or isinstance(result, list):
                     message = pprint.pformat(result, indent=1)
                     logger.debug("Removed item from queue - extension mismatch\n%s", message)
                 if (isinstance(result, dict)) and result.get('message'):
-                    logger.error("Failed to removie item from queue: '%s'", abspath_dest)
+                    logger.error("Failed to removie item from queue: '%s'", abspath_source)
             break
 
     # Run import
