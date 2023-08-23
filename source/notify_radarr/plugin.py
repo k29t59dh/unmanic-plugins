@@ -167,19 +167,32 @@ class Settings(PluginSettings):
         return values
 
 
+def ordinalize(number):
+    ones = number % 10
+    if number > 3 and number < 21:
+        suffix = 'th'
+    elif ones == 1:
+        suffix = 'st'
+    elif ones == 2:
+        suffix = 'nd'
+    elif ones == 3:
+        suffix = 'rd'
+    else:
+        suffix = 'th'
+    return '%d%s' % (number, suffix)
+
 def check_file_size_under_max_file_size(path, minimum_file_size):
     file_stats = os.stat(os.path.join(path))
     if int(humanfriendly.parse_size(minimum_file_size)) < int(file_stats.st_size):
         return False
     return True
 
-
 def update_mode(api, abspath, rename_files):
     basename = os.path.basename(abspath)
 
     # Run lookup search to fetch movie data and ID for rescan
     lookup_results = api.lookup_movie(str(basename))
-    #logger.debug("lookup results: %s", str(lookup_results))
+    logger.debug("lookup results: %s", str(lookup_results))
 
     # Loop over search results and just use the first result (best thing I can think of)
     movie_data = {}
@@ -269,15 +282,18 @@ def import_mode(api, source_path, dest_path, intermediate_root, import_root, sou
     abspath_dest   = os.path.join(import_root, dest_basename)
 
     # verify we've reconstructed paths correctly
-    if abspath_source not in source_path or abspath_dest not in dest_path:
-        logger.error("Import root ('%s') / intermediate_root ('%s') don't match source/desination files. Probable misconfiguration, exiting", import_root, intermediate_root)
+    if abspath_source not in source_path:
+        logger.error("Source file '%s' is not under intermediate root '%s' - file will not be processed.", source_path, intermediate_root)
+        return
+    if abspath_dest not in dest_path:
+        logger.error("Destination file '%s' is not under import root '%s' - file will not be processed.", dest_path, import_root)
         return
 
     is_dir = os.path.isdir(abspath_source)
-    logger.info("%s-type import - processing: '%s'", 'DIR' if is_dir else 'File', dest_path)
+    logger.info("%s-type import - processing: '%s'", 'DIR' if is_dir else 'FILE', dest_path)
 
-    logger.debug("abspath_source:      '%s'", abspath_source)
-    logger.debug("abspath_dest:        '%s'", abspath_dest)
+    logger.debug("Source:       '%s'", abspath_source)
+    logger.debug("Destination:  '%s'", abspath_dest)
 
     # if delay_processing's enabled (different import and intermediate dirs)
     # don't alert until all files (ignoring dot files) are processed. 
@@ -285,16 +301,21 @@ def import_mode(api, source_path, dest_path, intermediate_root, import_root, sou
         sourcefile_count = len(list(pathlib.Path(abspath_source).rglob('[!.]*.*')))
         destfile_count = len(list(pathlib.Path(abspath_dest).rglob('[!.]*.*')))
 
-        logger.debug("Files in import directory:       %d", destfile_count)
-        logger.debug("Files in intermediate directory: %d", sourcefile_count)
+        logger.debug("Files in import directory:        %d", destfile_count)
+        logger.debug("Files in intermediate directory:  %d", sourcefile_count)
 
         # In the case where mover *doesn't* delete source files:
         #   processing's complete when the number of files are equal.
         # In the casse where it does:
         #   it's complete when the number in source is 0.
-        if destfile_count < sourcefile_count or (sources_removed and sourcefile_count != 0):
-            logger.info("Delaying import until all (%d) intermediate files are processed", sourcefile_count)
-            # hide the file from sonarr to prevent early import
+        if sources_removed:
+            files_remaining = sourcefile_count
+        else:
+            files_remaining = sourcefile_count - destfile_count
+        logger.info("Processing %s of %d files", ordinalize(destfile_count), destfile_count + files_remaining)
+
+        if files_remaining > 0:
+            # hide the file from radarr to prevent early import
             newname = dest_path + '.tmp'
             logger.debug("Hiding file as '%s'", newname)
             # in case another notifier hid it (same library might notify sonarr AND radarr)
@@ -302,7 +323,7 @@ def import_mode(api, source_path, dest_path, intermediate_root, import_root, sou
                 os.rename(dest_path, newname)
             return
         else:
-            logger.info("All intermediate files have been processed")
+            logger.info("All files processed, notifying radarr")
             # unhide all hidden files
             for tmp_file in list(pathlib.Path(abspath_dest).rglob('*.tmp')):
                 logger.debug("Un-hiding file '%s'", os.path.splitext(tmp_file)[0])
@@ -347,15 +368,13 @@ def import_mode(api, source_path, dest_path, intermediate_root, import_root, sou
                 movie_title = item.get('title')
             else:
                 # ..if they don't we do a regular file import
-                # But that means the download will be suck in the queue indefinitely,
-                # so we'll explicitly remove it.
-                # NOTE: this could cause problems with seeding ratios - is there some way to 'remove' but retain radarr's management?
+                # But that leaves the download stuck in the queue indefinitely, so remove it.
+                #
+                # NOTE: This could cause problems with seeding ratios.
+                #       Is there some way to 'remove' but retain radarr's management?
+                logger.info("Deleting '%s' from queue", item.get('title'))
                 data = { "ids": [ item.get('id') ] }
                 result = api.del_queue_bulk(data=data, remove_from_client=True, blacklist=False)
-
-                if isinstance(result, dict) or isinstance(result, list):
-                    message = pprint.pformat(result, indent=1)
-                    logger.debug("Removed item from queue - extension mismatch\n%s", message)
                 if (isinstance(result, dict)) and result.get('message'):
                     logger.error("Failed to removie item from queue: '%s'", abspath_source)
             break
@@ -431,18 +450,9 @@ def on_postprocessor_task_results(data):
     else:
         settings = Settings()
         
-    #message = pprint.pformat(data, indent=1)
-    #logger.debug("data: \n%s", message)
-
     # Fetch destination and source files
     source_file = data.get('source_data', {}).get('abspath')
     destination_files = data.get('destination_files', [])
-
-    #message = pprint.pformat(data.get('source_data', {}), indent=1)
-    #logger.debug("source_data: \n%s", message)
-
-    #message = pprint.pformat(data.get('destination_files', []), indent=1)
-    #logger.debug("destination_files: \n%s", message)
 
     # Setup API
     host_url = settings.get_setting('host_url')
