@@ -163,6 +163,20 @@ class Settings(PluginSettings):
         return values
 
 
+def ordinalize(number):
+    ones = number % 10
+    if number > 3 and number < 21:
+        suffix = 'th'
+    elif ones == 1:
+        suffix = 'st'
+    elif ones == 2:
+        suffix = 'nd'
+    elif ones == 3:
+        suffix = 'rd'
+    else:
+        suffix = 'th'
+    return '%d%s' % (number, suffix)
+
 def check_file_size_under_max_file_size(path, minimum_file_size):
     file_stats = os.stat(os.path.join(path))
     if int(humanfriendly.parse_size(minimum_file_size)) < int(file_stats.st_size):
@@ -258,30 +272,39 @@ def import_mode(api, source_path, dest_path, intermediate_root, import_root, sou
     abspath_dest   = os.path.join(import_root, dest_basename)
 
     # verify we've reconstructed paths correctly
-    if abspath_source not in source_path or abspath_dest not in dest_path:
-        logger.error("Import root ('%s') / intermediate_root ('%s') don't match source/desination files. Probable misconfiguration, exiting", import_root, intermediate_root)
+    if abspath_source not in source_path:
+        logger.error("Source file '%s' is not under intermediate root '%s' - file will not be processed.", source_path, intermediate_root)
+        return
+    if abspath_dest not in dest_path:
+        logger.error("Destination file '%s' is not under import root '%s' - file will not be processed.", dest_path, import_root)
         return
 
     is_dir = os.path.isdir(abspath_source)
     logger.info("%s-type import - processing: '%s'", 'DIR' if is_dir else 'File', dest_path)
 
-    logger.debug("abspath_source:      '%s'", abspath_source)
-    logger.debug("abspath_dest:        '%s'", abspath_dest)
+    logger.debug("Source:       '%s'", abspath_source)
+    logger.debug("Destination:  '%s'", abspath_dest)
 
-    # don't alert until all source files are processed (ignoring dot files)
+    # if delay_processing's enabled (different import and intermediate dirs)
+    # don't alert until all files (ignoring dot files) are processed. 
     if is_dir and intermediate_root != import_root:
         sourcefile_count = len(list(pathlib.Path(abspath_source).rglob('[!.]*.*')))
         destfile_count = len(list(pathlib.Path(abspath_dest).rglob('[!.]*.*')))
 
-        logger.debug("Files in source: %d", sourcefile_count)
-        logger.debug("Files in dest:   %d", destfile_count)
-        
+        logger.debug("Files in import directory:        %d", destfile_count)
+        logger.debug("Files in intermediate directory:  %d", sourcefile_count)
+
         # In the case where mover *doesn't* delete source files:
         #   processing's complete when the number of files are equal.
         # In the casse where it does:
         #   it's complete when the number in source is 0.
-        if destfile_count < sourcefile_count or (sources_removed and sourcefile_count != 0):
-            logger.info("Delaying import until all (%d) intermediate files are processed", sourcefile_count)
+        if sources_removed:
+            files_remaining = sourcefile_count
+        else:
+            files_remaining = sourcefile_count - destfile_count
+        logger.info("Processing %s of %d files", ordinalize(destfile_count), destfile_count + files_remaining)
+
+        if files_remaining > 0:
             # hide the file from sonarr to prevent early import
             newname = dest_path + '.tmp'
             logger.debug("Hiding file as '%s'", newname)
@@ -290,7 +313,7 @@ def import_mode(api, source_path, dest_path, intermediate_root, import_root, sou
                 os.rename(dest_path, newname)
             return
         else:
-            logger.info("All intermediate files have been processed")
+            logger.info("All files processed, notifying sonarr")
             # unhide all hidden files
             for tmp_file in list(pathlib.Path(abspath_dest).rglob('*.tmp')):
                 logger.debug("Un-hiding file '%s'", os.path.splitext(tmp_file)[0])
@@ -303,7 +326,7 @@ def import_mode(api, source_path, dest_path, intermediate_root, import_root, sou
     queue = api.get_queue()
     message = pprint.pformat(queue, indent=1)
 
-    #logger.debug("Current queue \n%s", message)
+    logger.debug("Current queue \n%s", message)
     logger.debug("Searching queue for: '%s'", dest_basename)
     match = False
 
@@ -331,7 +354,7 @@ def import_mode(api, source_path, dest_path, intermediate_root, import_root, sou
     #  if there's a subdirectory match even if the extensions differ.
     #  Triggering it typically results in a double-import, so let's not.
     if download_id and is_dir:
-        logger.info("Supressing import trigger to avoid double-import; torrent's in a named directory which sonarr imports automatically")
+        logger.info("Supressing import trigger to avoid double-import; file is in a named directory which sonarr imports automatically")
         return
         
     # Run import
