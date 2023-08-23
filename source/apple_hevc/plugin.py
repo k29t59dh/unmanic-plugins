@@ -50,9 +50,13 @@ class PluginStreamMapper(StreamMapper):
 
 
     def custom_stream_mapping(self, stream_info: dict, stream_id: int):
-        stream_encoding = ['-c:v:{}'.format(stream_id), 'copy', '-tag:v:{}'.format(stream_id), 'hvc1']
-        if self.settings.get_setting('faststart'):
-            stream_encoding += ['-movflags', '+faststart']
+        # tags apply per-command not per-stream, so only add once
+        if stream_id == 0:
+            stream_encoding = ['-c:v:{}'.format(stream_id), 'copy', '-tag:v', 'hvc1']
+            if self.settings.get_setting('faststart'):
+                stream_encoding += ['-movflags', '+faststart']
+        else:
+            stream_encoding = ['-c:v:{}'.format(stream_id), 'copy']
             
         return {
             'stream_mapping':  ['-map', '0:v:{}'.format(stream_id)],
