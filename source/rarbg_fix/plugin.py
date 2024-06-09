@@ -207,12 +207,11 @@ def on_worker_process(data):
         data['file_in'] = "%s.rarbg_video.mkv" % (basename)
         data['file_out'] = "%s.rarbg_video_fixed.mkv" % (basename)
 
-        mapper.set_input_file(abspath)
+        mapper.set_input_file(data['file_in'])
         mapper.set_output_file(data.get('file_out'))
 
         exec_args = [
             '-A',
-            '-S',
             '-o', data['file_out'],
             data['file_in']
         ]
@@ -235,6 +234,7 @@ def on_worker_process(data):
 
         exec_args = [
             '-D',
+            '-S',
             '-o', data['file_out'],
             data['file_in']
         ]
