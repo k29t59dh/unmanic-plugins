@@ -267,9 +267,9 @@ def import_mode(api, source_path, dest_path, intermediate_root, import_root, sou
     source_basename = os.path.relpath(source_path, intermediate_root).split(os.sep)[0]
     dest_basename = os.path.relpath(dest_path, import_root).split(os.sep)[0]
     
-    #abspath_string = dest_path.replace('\\', '')
     abspath_source = os.path.join(intermediate_root, source_basename)
     abspath_dest   = os.path.join(import_root, dest_basename)
+    abspath_dest   = abspath_dest.replace('\\', '')
 
     # verify we've reconstructed paths correctly
     if abspath_source not in source_path:
@@ -302,7 +302,7 @@ def import_mode(api, source_path, dest_path, intermediate_root, import_root, sou
             files_remaining = sourcefile_count
         else:
             files_remaining = sourcefile_count - destfile_count
-        logger.info("Processing %s of %d files", ordinalize(destfile_count), destfile_count + files_remaining)
+        logger.info("Processing (%d of %d) files", destfile_count, destfile_count + files_remaining)
 
         if files_remaining > 0:
             # hide the file from sonarr to prevent early import
