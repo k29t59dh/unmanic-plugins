@@ -81,7 +81,7 @@ def on_library_management_file_test(data):
 
     # Get file probe
     probe = Probe.init_probe(data, logger)
-    if not probe.file(abspath):
+    if not probe or not probe.file(abspath):
         # File probe failed, skip the rest of this test
         return data
 
@@ -137,7 +137,7 @@ def on_worker_process(data):
 
     # Get file probe
     probe = Probe(logger, allowed_mimetypes=['video'])
-    if not probe.file(abspath):
+    if not probe or not probe.file(abspath):
         # File probe failed, skip the rest of this test
         return data
 
