@@ -21,4 +21,5 @@ So the conversion goes as follows:
 This plugin requires mkvtoolnix.
 
 For docker run the following command manually or in your startup script:
+
     /usr/bin/apt-get update; /usr/bin/apt-get install -y mkvtoolnix
