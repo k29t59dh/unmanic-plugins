@@ -1,5 +1,5 @@
 {
-    "author": "Cpt.Chaz,Josh.5",
+    "author": "Cpt.Chaz,Josh.5,k29t59dh",
     "compatibility": [
         2
     ],
@@ -14,5 +14,5 @@
         "on_postprocessor_task_results": 0
     },
     "tags": "radarr",
-    "version": "0.0.5"
+    "version": "0.0.6"
 }

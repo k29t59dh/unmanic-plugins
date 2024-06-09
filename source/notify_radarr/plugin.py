@@ -152,7 +152,7 @@ class Settings(PluginSettings):
         if self.get_setting('mode') != 'import_mode':
             values["display"] = 'hidden'
         elif not self.get_setting('delay_import'):
-            values["display"] = 'hidden'
+            values["display"] = 'disabled'
         return values
 
     def __set_sources_removed(self):
@@ -163,7 +163,7 @@ class Settings(PluginSettings):
         if self.get_setting('mode') != 'import_mode':
             values["display"] = 'hidden'
         elif not self.get_setting('delay_import'):
-            values["display"] = 'hidden'
+            values["display"] = 'disabled'
         return values
 
 
@@ -277,9 +277,9 @@ def import_mode(api, source_path, dest_path, intermediate_root, import_root, sou
     source_basename = os.path.relpath(source_path, intermediate_root).split(os.sep)[0]
     dest_basename = os.path.relpath(dest_path, import_root).split(os.sep)[0]
 
-    #abspath_string = dest_path.replace('\\', '')
     abspath_source = os.path.join(intermediate_root, source_basename)
     abspath_dest   = os.path.join(import_root, dest_basename)
+    abspath_dest   = abspath_dest.replace('\\', '')
 
     # verify we've reconstructed paths correctly
     if abspath_source not in source_path:
@@ -290,7 +290,7 @@ def import_mode(api, source_path, dest_path, intermediate_root, import_root, sou
         return
 
     is_dir = os.path.isdir(abspath_source)
-    logger.info("%s-type import - processing: '%s'", 'DIR' if is_dir else 'FILE', dest_path)
+    logger.info("%s-type import - processing: '%s'", 'DIR' if is_dir else 'File', dest_path)
 
     logger.debug("Source:       '%s'", abspath_source)
     logger.debug("Destination:  '%s'", abspath_dest)
@@ -312,7 +312,7 @@ def import_mode(api, source_path, dest_path, intermediate_root, import_root, sou
             files_remaining = sourcefile_count
         else:
             files_remaining = sourcefile_count - destfile_count
-        logger.info("Processing %s of %d files", ordinalize(destfile_count), destfile_count + files_remaining)
+        logger.info("Processing (%d of %d) files", destfile_count, destfile_count + files_remaining)
 
         if files_remaining > 0:
             # hide the file from radarr to prevent early import
@@ -333,7 +333,7 @@ def import_mode(api, source_path, dest_path, intermediate_root, import_root, sou
     download_id = None
     movie_title = None
 
-    queue = api.get_queue()
+    queue = api.get_queue(page_size=500)     # default is 20, handle large queues
     message = pprint.pformat(queue, indent=1)
 
     logger.debug("Current queue \n%s", message)
@@ -366,17 +366,6 @@ def import_mode(api, source_path, dest_path, intermediate_root, import_root, sou
             if extension_match:
                 download_id = item.get('downloadId')
                 movie_title = item.get('title')
-            else:
-                # ..if they don't we do a regular file import
-                # But that leaves the download stuck in the queue indefinitely, so remove it.
-                #
-                # NOTE: This could cause problems with seeding ratios.
-                #       Is there some way to 'remove' but retain radarr's management?
-                logger.info("Deleting '%s' from queue", item.get('title'))
-                data = { "ids": [ item.get('id') ] }
-                result = api.del_queue_bulk(data=data, remove_from_client=True, blacklist=False)
-                if (isinstance(result, dict)) and result.get('message'):
-                    logger.error("Failed to removie item from queue: '%s'", abspath_source)
             break
 
     # Run import
@@ -402,6 +391,14 @@ def import_mode(api, source_path, dest_path, intermediate_root, import_root, sou
     # TODO: Check for other possible outputs
     logger.info("Successfully queued import of: '%s'", abspath_dest)
 
+    # If extensions didn't match (so we used file-import) we have to remove the download from the queue
+    if match and not extension_match:
+        logger.info("Deleting '%s' from queue", item.get('title'))
+        time.sleep(60)  # Give time for the import to queue
+        data = { "ids": [ item.get('id') ] }
+        result = api.del_queue_bulk(data=data, remove_from_client=True, blacklist=False)
+        if (isinstance(result, dict)) and result.get('message'):
+            logger.error("Failed to removie item from queue: '%s'", abspath_source)
 
 def process_files(settings, source_file, destination_files, host_url, api_key):
     api = RadarrAPI(host_url, api_key)
