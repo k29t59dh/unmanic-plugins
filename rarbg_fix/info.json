@@ -1,0 +1,15 @@
+{
+    "author": "k29t59dh",
+    "compatibility": [
+        2
+    ],
+    "description": "This plugin recalculates framerates in RARBG H265 MP4s to correct stuttering playback on Apple devices.",
+    "icon": "https://raw.githubusercontent.com/k29t59dh/unmanic-plugins/master/source/rarbg_fix/icon.png",
+    "id": "rarbg_fix",
+    "name": "RARBG Fix",
+    "priorities": {
+        "on_worker_process": 0
+    },
+    "tags": "apple, rarbg, hevc, 265",
+    "version": "0.0.1"
+}
