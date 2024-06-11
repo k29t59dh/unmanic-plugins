@@ -12,9 +12,9 @@ ffmpeg won't recalculate framerate when converting, so we use mkvtoolnix.
 But mkvtoolnix strips container tags with multiple streams, which we don't want.
 
 So the conversion goes as follows:
-1. Split mp4 into audio and video mkvs
-2. Convert each mkv using mkvtoolnix to force frame rate recalculation
-3. Recombine them with ffmpeg in an mp4 container
+1. Use ffmpeg to split the mp4 into audio and video mkvs
+2. Use mkvtoolnix to process each single-stream mkv, forcing frame-rate recalculation
+3. Recombine the corrected streams back into an mp4
 
 ---
 ###### Note:
